@@ -17,9 +17,14 @@
 #define SINGLE_SAMPLE_MAX INT16_MAX
 #define SINGLE_SAMPLE_MIN INT16_MIN
 
+typedef struct {
+    float left;
+    float right;
+}Frame;
+
 static const int screenWidth = 800;
 static const int screenHeight = 450;
-DOUBLE_SAMPLE global_frames[4800] = {0};
+Frame global_frames[4800*2] = {0};
 size_t global_frames_count = 0;
 
 //----------------------------------------------------------------------------------
@@ -28,15 +33,15 @@ size_t global_frames_count = 0;
 void callback(void *bufferData, unsigned int frames) {
   size_t capacity = ARRAY_LEN(global_frames);
   if (frames <= capacity - global_frames_count) {
-    memcpy(global_frames + global_frames_count, bufferData, frames * sizeof(uint32_t));
+    memcpy(global_frames + global_frames_count, bufferData, frames * sizeof(Frame));
     global_frames_count += frames;
   } else if (frames <= capacity) {
     memmove(global_frames, global_frames + frames,
-            sizeof(uint32_t) * (capacity - frames));
+            sizeof(Frame) * (capacity - frames));
     memcpy(global_frames + (capacity - frames), bufferData,
-           sizeof(uint32_t) * frames);
+           sizeof(Frame) * frames);
   } else {
-    memcpy(global_frames, bufferData, sizeof(uint32_t) * capacity);
+    memcpy(global_frames, bufferData, sizeof(Frame) * capacity);
     global_frames_count = capacity;
   } 
   // printf("callback(frames = %u)\n", frames);
@@ -86,13 +91,13 @@ int main(void) {
     ClearBackground(RAYWHITE);
     float cell_width = (float)screenWidth / global_frames_count;
     for (size_t i = 0; i < global_frames_count; i++) {
-      SINGLE_SAMPLE sample = *(SINGLE_SAMPLE*)&global_frames[i];
-      if (sample > 0) {
-        float t = (float)sample / SINGLE_SAMPLE_MAX;
+        float t = global_frames[i].left;
+      if (t > 0) {
+        /*float t = (float)sample / SINGLE_SAMPLE_MAX;*/
         DrawRectangle(i * cell_width, screenHeight / 2 - screenHeight / 2 * t,
                       1, screenHeight / 2 * t, RED);
       } else {
-        float t = (float)sample / SINGLE_SAMPLE_MIN; 
+        /*float t = (float)sample / SINGLE_SAMPLE_MIN; */
         DrawRectangle(i * cell_width, screenHeight/2, 1, screenHeight / 2 * t, RED);
       }
     }
