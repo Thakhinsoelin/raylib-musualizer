@@ -8,3 +8,13 @@ void* loadlibrary(const char* string) {
 void* findsymbol(void* handle, const char* address_name) {
 	return GetProcAddress((HMODULE)handle, address_name);
 };
+
+void unloadlibrary(void* handle) {
+	if(handle != NULL) FreeLibrary((HMODULE)handle);
+	handle = NULL;
+}
+
+DWORD getError() {
+	//return FormatMessage(GetLastError());
+	return 4;
+}

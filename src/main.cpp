@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
   //---------------------------------------------------------
     
   call();
-  return 0;
+  
   const char *program = shit_args(&argc, &argv);
   if (argc == 0) {
     fprintf(stderr, "Usage: %s <input>\n", program);
@@ -117,50 +117,26 @@ int main(int argc, char **argv) {
 
   InitAudioDevice();
   
-  init(file_path);
+  if (init(file_path) == 1) {
+      //return 1;
+  }
+
+
+  
   // #if defined(PLATFORM_WEB)
   //     emscripten_set_main_loop(UpdateDrawFrame, 60, 1);
   // #else
 
   //--------------------------------------------------------------------------------------
-
+  /*Music music = LoadMusicStream(file_path);
+  PlayMusicStream(music);*/
   // Main game loop
   while (!WindowShouldClose()) // Detect window close button or {undefined} key
   {
-    if (IsKeyPressed(KEY_SPACE)) {
-      if (IsMusicStreamPlaying(music)) {
-        PauseMusicStream(music);
-      } else {
-        ResumeMusicStream(music);
+      if (IsKeyPressed(KEY_R)) {
+          reloadDLL();
       }
-    }
-    UpdateMusicStream(music);
-    BeginDrawing();
-
-    ClearBackground(RAYWHITE);
-    float cell_width = (float)screenWidth / N;
-    for (size_t i = 0; i < N; i++) {
-      float t = amp(out[i]) / max_amp;
-      DrawRectangle(i * cell_width, screenHeight / 2 - screenHeight / 2 * t,
-                    cell_width, screenHeight / 2 * t, RED);
-    }
-
-    // for (size_t i = 0; i < global_frames_count; i++) {
-    //     float t = global_frames[i].left;
-    //   if (t > 0) {
-    //     /*float t = (float)sample / SINGLE_SAMPLE_MAX;*/
-    //     DrawRectangle(i * cell_width, screenHeight / 2 - screenHeight / 2 *
-    //     t,
-    //                   1, screenHeight / 2 * t, RED);
-    //   } else {
-    //     /*float t = (float)sample / SINGLE_SAMPLE_MIN; */
-    //     DrawRectangle(i * cell_width, screenHeight/2, 1, screenHeight / 2 *
-    //     t, RED);
-    //   }
-    // }
-    //  DrawText("Congrats! You created your first window!", 190, 200, 20,
-    //  LIGHTGRAY); if(global_frames_count > 0) exit(1);
-    EndDrawing();
+      update();
   }
   // #endif
   CloseWindow(); // Close window and OpenGL context

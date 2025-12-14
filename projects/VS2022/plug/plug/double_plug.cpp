@@ -2,11 +2,16 @@
 #include "plug.h"
 #include <assert.h>
 
-Plug state = { 0 };
 typedef struct {
     float left;
     float right;
 } Frame;
+
+float in[N] = { 0 };
+std::complex<float> out[N] = { 0 };
+float max_amp = 0;
+
+Plug state = { 0 };
 
 void fft(float in[], size_t stride, std::complex<float> out[], size_t n) {
     assert(n > 0);
@@ -42,23 +47,20 @@ void callback(void* bufferData, unsigned int frames) {
     Frame* fframes = (Frame*)bufferData;
 
     for (size_t i = 0; i < frames; i++) {
-        state.in[i] = fframes[i].left;
+        in[i] = fframes[i].left;
+        //printf("data: %0.7f", fframes[i].right);
     }
-    fft(state.in, 1, state.out, N);
-
-    for (size_t i = 0; i < frames; i++) {
-        float a = amp(state.out[i]);
-        if (a > state.max_amp) {
-            state.max_amp = a;
-        }
-    }
+    
 }
 
 
 void m_plug_init(const char* file_path) {
-	
+    
 	state.music = LoadMusicStream(file_path);
-    state.max_amp = 0;
+    /*if (!state.music) {
+        printf("Loading music failed\n");
+    }*/
+    max_amp = 0;
 
 
 
@@ -71,15 +73,19 @@ void m_plug_init(const char* file_path) {
 	state.music.looping = false;
 	PlayMusicStream(state.music);
 	SetMusicVolume(state.music, 0.5f);
-	AttachAudioStreamProcessor(state.music.stream, callback);
+
+    printf("entering the callback\n");
+    AttachAudioStreamProcessor(state.music.stream, callback);
+    printf("ending the call back\n");
 };
 
 
-int screenWidth = GetRenderWidth();
-int screenHeight = GetRenderHeight();
+int screenWidth = 800;
+int screenHeight = 450;
 
 
 void m_plug_update() {
+    UpdateMusicStream(state.music);
     if (IsKeyPressed(KEY_SPACE)) {
         if (IsMusicStreamPlaying(state.music)) {
             PauseMusicStream(state.music);
@@ -88,15 +94,27 @@ void m_plug_update() {
             ResumeMusicStream(state.music);
         }
     }
-    UpdateMusicStream(state.music);
+    fft(in, 1, out, N);
+
+    for (size_t i = 0; i < N; i++) {
+        float a = amp(out[i]);
+        if (a > max_amp) {
+            max_amp = a;
+        }
+    }
+
     BeginDrawing();
 
     ClearBackground(RAYWHITE);
+    
+    
+
     float cell_width = (float)screenWidth / N;
     for (size_t i = 0; i < N; i++) {
-        float t = amp(state.out[i]) / state.max_amp;
+        float t = amp(out[i]) / max_amp;
+        
         DrawRectangle(i * cell_width, screenHeight / 2 - screenHeight / 2 * t,
-            cell_width, screenHeight / 2 * t, RED);
+            cell_width, screenHeight / 2 * t, GREEN);
     }
 
     // for (size_t i = 0; i < global_frames_count; i++) {

@@ -14,3 +14,4 @@ void* loadlibrary(const char* string);
 
 // Find the symbol in the dll
 void* findsymbol(void* handle, const char* address_name);
+void unloadlibrary(void* handle);
