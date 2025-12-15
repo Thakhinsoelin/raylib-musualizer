@@ -6,7 +6,9 @@ void* loadlibrary(const char* string) {
 };
 
 void* findsymbol(void* handle, const char* address_name) {
-	return GetProcAddress((HMODULE)handle, address_name);
+	return reinterpret_cast<void*>(
+        GetProcAddress((HMODULE)handle, address_name)
+    );
 };
 
 void unloadlibrary(void* handle) {
