@@ -16,7 +16,15 @@ void unloadlibrary(void* handle) {
 	handle = NULL;
 }
 
-DWORD getError() {
+unsigned long getError() {
 	//return FormatMessage(GetLastError());
-	return 4;
+	return GetLastError();
 }
+
+bool filecopy(const char* source, const char* destination, bool write) {
+	return CopyFileA(source, destination, write);
+};
+
+bool deletefile(const char* filename) {
+	return DeleteFileA(filename);
+};

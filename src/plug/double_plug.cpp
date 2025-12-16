@@ -11,7 +11,6 @@ float in[N] = { 0 };
 std::complex<float> out[N] = { 0 };
 float max_amp = 0;
 
-Plug state = { 0 };
 
 void fft(float in[], size_t stride, std::complex<float> out[], size_t n) {
     assert(n > 0);
@@ -54,28 +53,28 @@ void callback(void* bufferData, unsigned int frames) {
 }
 
 
-void m_plug_init(const char* file_path) {
-    
-	state.music = LoadMusicStream(file_path);
-    /*if (!state.music) {
+void m_plug_init(void* s, const char* file_path) {
+    Plug* state = (Plug*)s;
+	state->music = LoadMusicStream(file_path);
+    /*if (!state->music) {
         printf("Loading music failed\n");
     }*/
     max_amp = 0;
 
 
 
-	assert(state.music.stream.sampleSize == 32);
-	assert(state.music.stream.channels == 2);
-	printf("state.music framecounts = %u\n", state.music.frameCount);
-	printf("state.music stream sample rate = %u\n", state.music.stream.sampleRate);
-	printf("state.music stream sample size = %u\n", state.music.stream.sampleSize);
-	printf("state.music stream sample channels = %u\n", state.music.stream.channels);
-	state.music.looping = false;
-	PlayMusicStream(state.music);
-	SetMusicVolume(state.music, 0.5f);
+	assert(state->music.stream.sampleSize == 32);
+	assert(state->music.stream.channels == 2);
+	printf("state->music framecounts = %u\n", state->music.frameCount);
+	printf("state->music stream sample rate = %u\n", state->music.stream.sampleRate);
+	printf("state->music stream sample size = %u\n", state->music.stream.sampleSize);
+	printf("state->music stream sample channels = %u\n", state->music.stream.channels);
+	state->music.looping = false;
+	PlayMusicStream(state->music);
+	SetMusicVolume(state->music, 0.5f);
 
     printf("entering the callback\n");
-    AttachAudioStreamProcessor(state.music.stream, callback);
+    AttachAudioStreamProcessor(state->music.stream, callback);
     printf("ending the call back\n");
 };
 
@@ -84,14 +83,15 @@ int screenWidth = 800;
 int screenHeight = 450;
 
 
-void m_plug_update() {
-    UpdateMusicStream(state.music);
+void m_plug_update(void* s) {
+    Plug* state = (Plug*)s;
+    UpdateMusicStream(state->music);
     if (IsKeyPressed(KEY_SPACE)) {
-        if (IsMusicStreamPlaying(state.music)) {
-            PauseMusicStream(state.music);
+        if (IsMusicStreamPlaying(state->music)) {
+            PauseMusicStream(state->music);
         }
         else {
-            ResumeMusicStream(state.music);
+            ResumeMusicStream(state->music);
         }
     }
     fft(in, 1, out, N);
@@ -114,7 +114,7 @@ void m_plug_update() {
         float t = amp(out[i]) / max_amp;
         
         DrawRectangle(i * cell_width, screenHeight / 2 - screenHeight / 2 * t,
-            cell_width, screenHeight / 2 * t, GREEN);
+            cell_width, screenHeight / 2 * t, RED);
     }
 
     // for (size_t i = 0; i < global_frames_count; i++) {
@@ -134,3 +134,7 @@ void m_plug_update() {
     //  LIGHTGRAY); if(global_frames_count > 0) exit(1);
     EndDrawing();
 }
+
+void m_plug_shutdown(void* s) {
+    Plug* state = (Plug*)s;
+};
