@@ -8,11 +8,10 @@
 #define plug_updaten "plug_update"
 
 typedef struct Plug {
-	
 	Music music;
 };
 
 typedef void (*add_t)(int, int);
 typedef void (*plug_hello_t)(void);
-typedef void (*plug_init_t)(const char* file_path);
-typedef void (*plug_update_t)();
+typedef void (*plug_init_t)(void* state, const char* file_path);
+typedef void (*plug_update_t)(void* state);
