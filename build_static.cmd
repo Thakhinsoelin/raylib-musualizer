@@ -4,26 +4,15 @@ setlocal
 REM ==== CONFIG ====
 set GPP=g++
 set OUT=build\
-set IMPLIB=%OUT%libplug.lib
-
 REM Path to raylib
 set RAYLIB=raylib
 
 REM ==== BUILD ====
-%GPP% -shared ^
-    -static-libgcc -static-libstdc++ ^
-    -I"%RAYLIB%\include" ^
-    src\plug\*.cpp ^
-    -L"%RAYLIB%\lib" ^
-    -lraylib ^
-    -lopengl32 -lgdi32 -lwinmm ^
-    -Wl,--out-implib,%IMPLIB% ^
-    -o %OUT%libplug.dll
 
 %GPP% ^
-    -DHOTRELOAD -static-libgcc -static-libstdc++ ^
+    -static-libgcc -static-libstdc++ ^
     -I"%RAYLIB%\include" -Isrc\plug\^
-    src\main\*.cpp ^
+    src\plug\*.cpp src\main\*.cpp^
     -L"%RAYLIB%\lib" ^
     -lraylib ^
     -lopengl32 -lgdi32 -lwinmm ^

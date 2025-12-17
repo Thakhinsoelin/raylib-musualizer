@@ -2,8 +2,12 @@
 #include "pch.h"
 #include <stdio.h>
 #include "double_plug.h"
-#define MY_DLL extern "C" __declspec(dllexport)
 
+#ifdef HOTRELOAD
+#define MY_DLL extern "C" __declspec(dllexport)
+#else
+#define MY_DLL extern "C"
+#endif
 // mylib.cpp
 
 //extern "C" __declspec(dllexport)
@@ -17,6 +21,7 @@ void plug_hello(void) {
 }
 
 MY_DLL void plug_init(void* state, const char* file_path) {
+    printf("init function does work\n");
     m_plug_init(state, file_path);
 }
 

@@ -8,51 +8,51 @@
 DECLARE_HANDLE(HINSTANCE);
 typedef HINSTANCE HMODULE;
 
-plug_init_t plug_init = NULL;
-plug_update_t plug_update = NULL;
-
-plug_post_reload_t plug_post_reload = NULL;
-plug_pre_reload_t plug_pre_reload = NULL;
+#ifdef HOTRELOAD
+#define PLUG(name) name##_t name = NULL;
+#else
+// #define PLUG(name) extern name##_t name;
+#define PLUG(name) extern "C" void name(void* state, ...);
+//#define PLUG(name) extern "C" void name(void* state, ...);
+#endif
+LIST_OF_PLUGS
+#undef PLUG
+// plug_init_t plug_init = NULL;
+// plug_update_t plug_update = NULL;
+// plug_post_reload_t plug_pos_reload = NULL;
+// plug_pre_reload_t plug_pre_reload = NULL;
 Plug state = {0};
 
 const char* libplug = "libplug_loaded.dll";
 HMODULE handle = NULL;
 
 void loadSymbols() {
-	plug_init = (plug_init_t)findsymbol(handle, plug_initn);
-	if (plug_init == NULL)
-	{
-		printf("didn't find the function: %s\n", plug_initn);
-		
+	#ifdef HOTRELOAD
+	#define PLUG(name) \
+		name = (name##_t)findsymbol(handle, #name); \
+		if (name == NULL) \
+		{ \
+			fprintf(stderr, "ERROR: could not find %s symbol in %s.\n", \
+				#name, libplug); \
+		}
+	LIST_OF_PLUGS
+	#undef PLUG
+	#endif
 
-	}
-	
-	plug_update = (plug_update_t)findsymbol(handle, plug_updaten);
-	if (plug_update == NULL) {
-		printf("can't find update function\n");
-		
-	}
-
-	plug_pre_reload = (plug_pre_reload_t)findsymbol(handle, "plug_pre_reload");
-	if (plug_pre_reload == NULL) {
-		printf("can't find update function\n");
-		
-	}
-	plug_post_reload = (plug_post_reload_t)findsymbol(handle, "plug_post_reload");
-	if (plug_post_reload == NULL) {
-		printf("can't find update function\n");
-		
-	}
 }
 
+#ifdef HOTRELOAD
 void reloadDLL() {
-	PauseMusicStream(state.music);
+	//PauseMusicStream(state.music);
 	plug_pre_reload(&state);
 	printf("before unloading: %p\n", handle);
-	plug_init = NULL;
-	plug_update = NULL;
-	plug_post_reload = NULL;
-	plug_pre_reload = NULL;
+	#define PLUG(name) name = NULL;
+	LIST_OF_PLUGS
+	#undef PLUG
+	// plug_init = NULL;
+	// plug_update = NULL;
+	// plug_post_reload = NULL;
+	// plug_pre_reload = NULL;
 	unloadlibrary((void*)handle);
 	printf("after unloading 1\n");
 	if (!deletefile("libplug_loaded.dll")) {
@@ -66,8 +66,13 @@ void reloadDLL() {
 	printf("after unloading: %p\n", handle);
 	loadSymbols();
 	plug_post_reload(&state);
-	PlayMusicStream(state.music);
+	//PlayMusicStream(state.music);
 }
+#else
+void reloadDLL() {
+
+}
+#endif
 
 int call(void) {
 
@@ -75,9 +80,11 @@ int call(void) {
 }
 
 int init(const char* song_name) {
+	#ifdef HOTRELOAD
 	filecopy("libplug.dll", "libplug_loaded.dll", false);
 	handle = (HMODULE)loadlibrary(libplug);
 	loadSymbols();
+	#endif
 	plug_init(&state, song_name);
 	return 0;
 }
