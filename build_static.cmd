@@ -15,8 +15,8 @@ REM ==== BUILD ====
     src\plug\*.cpp src\main\*.cpp^
     -L"%RAYLIB%\lib" ^
     -lraylib ^
-    -lopengl32 -lgdi32 -lwinmm ^
-    -o %OUT%musualizer
+    -lopengl32 -lgdi32 -lwinmm -mwindows ^
+    -o %OUT%musualizer_static
 
 if %errorlevel% neq 0 (
     echo Build failed!

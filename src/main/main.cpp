@@ -48,14 +48,14 @@ int main(int argc, char **argv) {
     
   call();
   
-  const char *program = shit_args(&argc, &argv);
-  if (argc == 0) {
-    fprintf(stderr, "Usage: %s <input>\n", program);
-    fprintf(stderr, "ERROR: no input file is provided\n");
-    return 1;
-  }
+  // const char *program = shit_args(&argc, &argv);
+  // if (argc == 0) {
+  //   fprintf(stderr, "Usage: %s <input>\n", program);
+  //   fprintf(stderr, "ERROR: no input file is provided\n");
+  //   return 1;
+  // }
 
-  const char *file_path = shit_args(&argc, &argv);
+  // const char *file_path = shit_args(&argc, &argv);
 
   SetWindowState(FLAG_WINDOW_ALWAYS_RUN);
   InitWindow(screenWidth, screenHeight, "raylib game template");
@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
 
   InitAudioDevice();
   
-  if (init(file_path) == 1) {
+  if (init() == 1) {
       //return 1;
   }
 

@@ -9,9 +9,9 @@ DECLARE_HANDLE(HINSTANCE);
 typedef HINSTANCE HMODULE;
 
 #ifdef HOTRELOAD
-#define PLUG(name) name##_t name = NULL;
+#define PLUG(name, ...) name##_t name = NULL;
 #else
-#define PLUG(name) extern "C" void name(...);
+#define PLUG(name, ...) extern "C" void name(...);
 #endif
 LIST_OF_PLUGS
 #undef PLUG
@@ -19,14 +19,14 @@ LIST_OF_PLUGS
 // plug_update_t plug_update = NULL;
 // plug_post_reload_t plug_pos_reload = NULL;
 // plug_pre_reload_t plug_pre_reload = NULL;
-Plug state = {0};
+
 
 const char* libplug = "libplug_loaded.dll";
 HMODULE handle = NULL;
 
 void loadSymbols() {
 	#ifdef HOTRELOAD
-	#define PLUG(name) \
+	#define PLUG(name, ...) \
 		name = (name##_t)findsymbol(handle, #name); \
 		if (name == NULL) \
 		{ \
@@ -44,7 +44,7 @@ void reloadDLL() {
 	//PauseMusicStream(state.music);
 	void* state = plug_pre_reload();
 	printf("before unloading: %p\n", handle);
-	#define PLUG(name) name = NULL;
+	#define PLUG(name, ...) name = NULL;
 	LIST_OF_PLUGS
 	#undef PLUG
 	// plug_init = NULL;
@@ -63,7 +63,7 @@ void reloadDLL() {
 	handle = (HMODULE)loadlibrary(libplug);
 	printf("after unloading: %p\n", handle);
 	loadSymbols();
-	plug_post_reload(&state);
+	plug_post_reload(state);
 	//PlayMusicStream(state.music);
 }
 #else
@@ -77,13 +77,13 @@ int call(void) {
 	return 0;
 }
 
-int init(const char* song_name) {
+int init() {
 	#ifdef HOTRELOAD
 	filecopy("libplug.dll", "libplug_loaded.dll", false);
 	handle = (HMODULE)loadlibrary(libplug);
 	loadSymbols();
 	#endif
-	plug_init(song_name);
+	plug_init();
 	return 0;
 }
 

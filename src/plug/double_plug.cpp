@@ -1,9 +1,9 @@
 #include "double_plug.h"
-#include "plug.h"
+//#include "plug.h"
 #include <assert.h>
-#include <cstddef>
+#include <complex>
 #include <string.h>
-
+#include "raylib.h"
 typedef struct {
     float left;
     float right;
@@ -14,7 +14,12 @@ std::complex<float> out[N] = { 0 };
 float max_amp = 0;
 
 int counter = 0;
+struct Plug {
+    bool loadError = false;
+	Music music;
+};
 
+Plug* state = NULL;
 void fft(float in[], size_t stride, std::complex<float> out[], size_t n) {
     assert(n > 0);
     if (n == 1) {
@@ -44,7 +49,7 @@ float amp(std::complex<float> z) {
 void callback(void* bufferData, unsigned int frames) {
     
 
-    float (*fframes)[2] = (float*)bufferData;
+    float (*fframes)[state->music.stream.channels] = (float(*)[state->music.stream.channels])bufferData;
 
     for (size_t i = 0; i < frames; i++) {
         memmove(in, in+1, (N - 1)*sizeof(in[0]));
@@ -54,36 +59,41 @@ void callback(void* bufferData, unsigned int frames) {
     
 }
 
+// change this
 void m_post_reload(void* s) {
-    Plug* state = (Plug*)s;
-    AttachAudioStreamProcessor(state->music.stream, callback);
+    state = (Plug*)s;
+    if(IsMusicValid(state->music)) {
+        AttachAudioStreamProcessor(state->music.stream, callback);
+    }
 };
 
-void m_pre_reload(void* s) {
-    Plug* state = (Plug*)s;
-    DetachAudioStreamProcessor(state->music.stream, callback);
+// change this 
+void* m_pre_reload() {
+    
+    if(IsMusicValid(state->music)) {
+        DetachAudioStreamProcessor(state->music.stream, callback);
+        }
+    return (void*)state;
 };
 
-void m_plug_init(void* s, const char* file_path) {
-    Plug* state = (Plug*)s;
-	state->music = LoadMusicStream(file_path);
-    max_amp = 0;
+void m_plug_init() {
+    state = new Plug;
+    memset(state, 0, sizeof(Plug));
+	// state->music = LoadMusicStream(file_path);
+    
 
 
 
-	assert(state->music.stream.sampleSize == 32);
-	assert(state->music.stream.channels == 2);
-	printf("state->music framecounts = %u\n", state->music.frameCount);
-	printf("state->music stream sample rate = %u\n", state->music.stream.sampleRate);
-	printf("state->music stream sample size = %u\n", state->music.stream.sampleSize);
-	printf("state->music stream sample channels = %u\n", state->music.stream.channels);
-	//state->music.looping = false;
-	PlayMusicStream(state->music);
-	SetMusicVolume(state->music, 0.25f);
+	// assert(state->music.stream.sampleSize == 32);
+	// printf("state->music framecounts = %u\n", state->music.frameCount);
+	// printf("state->music stream sample rate = %u\n", state->music.stream.sampleRate);
+	// printf("state->music stream sample size = %u\n", state->music.stream.sampleSize);
+	// printf("state->music stream sample channels = %u\n", state->music.stream.channels);
+	
+	// PlayMusicStream(state->music);
+	// SetMusicVolume(state->music, 0.25f);
 
-    printf("entering the callback\n");
-    AttachAudioStreamProcessor(state->music.stream, callback);
-    printf("ending the call back\n");
+    // AttachAudioStreamProcessor(state->music.stream, callback);
 };
 
 
@@ -91,79 +101,103 @@ int screenWidth = 800;
 int screenHeight = 450;
 
 
-void m_plug_update(void* s) {
-    counter = counter + 1;
-    Plug* state = (Plug*)s;
-    UpdateMusicStream(state->music);
+void m_plug_update() {
+    if(IsMusicValid(state->music)) {
+        UpdateMusicStream(state->music);
+    }
     if (IsKeyPressed(KEY_SPACE)) {
-        if (IsMusicStreamPlaying(state->music)) {
-            PauseMusicStream(state->music);
-        }
-        else {
-            ResumeMusicStream(state->music);
+        if(IsMusicValid(state->music)) {
+            if (IsMusicStreamPlaying(state->music)) {
+                PauseMusicStream(state->music);
+            }
+            else {
+                ResumeMusicStream(state->music);
+            }
         }
     }
 
     if(IsFileDropped()) {
         FilePathList droppedFiles = LoadDroppedFiles();
         const char* loadedfile = droppedFiles.paths[0];
-        DetachAudioStreamProcessor(state->music.stream, callback);
-        StopMusicStream(state->music);
-        UnloadMusicStream(state->music);
+        if(IsMusicValid(state->music)) {
+            DetachAudioStreamProcessor(state->music.stream, callback);
+            StopMusicStream(state->music);
+            UnloadMusicStream(state->music);
+        }
+
         state->music = LoadMusicStream(loadedfile);
-        PlayMusicStream(state->music);
-        AttachAudioStreamProcessor(state->music.stream, callback);
-        // printf("dropped:\n");
-        // for(int i = 0; i < droppedFiles.count; i++) {
-        //     printf("dropped files: %s\n", droppedFiles.paths[i]);
-        // }
+        if(IsMusicValid(state->music)) {
+            state->loadError = false;
+            AttachAudioStreamProcessor(state->music.stream, callback);
+            PlayMusicStream(state->music);
+            SetMusicVolume(state->music, 0.25f);
+        } else {
+            state->loadError = true;
+        }
+
         UnloadDroppedFiles(droppedFiles);
     }
 
     if(IsKeyPressed(KEY_Q)) {
-        StopMusicStream(state->music);
-        PlayMusicStream(state->music);
-    }
-    fft(in, 1, out, N);
-    float max_amp = 0.f;
-    for (size_t i = 0; i < N; i++) {
-        float a = amp(out[i]);
-        if (a > max_amp) {
-            max_amp = a;
+        if(IsMusicValid(state->music)) {
+            StopMusicStream(state->music);
+            PlayMusicStream(state->music);
+            SetMusicVolume(state->music, 0.25f);
         }
     }
-    float step = 1.06;
-    size_t m =0;
-    for (float f = 20.0f; (size_t)f < N; f *= step) {
-        m += 1;
-    }
-
     BeginDrawing();
-
     ClearBackground(GetColor(0x151515FF));
-    
-    // printf("m is %d\n", m);
-    float cell_width = (float)screenWidth / m;
-    m = 0;
-    for (float f = 20.0f; (size_t)f < N; f *= step) {
-        float f1 = f * step;
-        float a = 0.f;
-        for(size_t q = (size_t)f; q < N && q < (size_t) f1; ++q) {
-            a += amp(out[q]);
+    if (IsMusicValid(state->music)) {
+        fft(in, 1, out, N);
+        float max_amp = 0.f;
+        for (size_t i = 0; i < N; i++) {
+            float a = amp(out[i]);
+            if (a > max_amp) {
+                max_amp = a;
+            }
         }
-        a /= (size_t)f1 - (size_t)f + 1;
-        // printf("%f, %f", in[i], out[i]);
-        float t = a / max_amp;
-        DrawRectangle(m * cell_width, screenHeight / 2 - screenHeight / 2 * t,
-           cell_width, screenHeight / 2 * t, GREEN);
-        // DrawCircle(m * cell_width, screenHeight / 2,
-        // screenHeight / 2 * t, GREEN);
-             m += 1;
-    }
+        float step = 1.06;
+        size_t m =0;
+        for (float f = 20.0f; (size_t)f < N; f *= step) {
+            m += 1;
+        }
 
+        
+        // printf("m is %d\n", m);
+        float cell_width = (float)screenWidth / m;
+        m = 0;
+        for (float f = 20.0f; (size_t)f < N; f *= step) {
+            float f1 = f * step;
+            float a = 0.f;
+            for(size_t q = (size_t)f; q < N && q < (size_t) f1; ++q) {
+                a += amp(out[q]);
+            }
+            a /= (size_t)f1 - (size_t)f + 1;
+            // printf("%f, %f", in[i], out[i]);
+            float t = a / max_amp;
+            DrawRectangle(m * cell_width, screenHeight / 2 - screenHeight / 2 * t,
+            cell_width, screenHeight / 2 * t, GREEN);
+            // DrawCircle(m * cell_width, screenHeight / 2,
+            // screenHeight / 2 * t, RED);
+                m += 1;
+        }
+    } else {
+        const char* label;
+        Color color;
+        int height = 50;
+        if (state->loadError) {
+            label = "Could not load file";
+            color = RED;
+        } else {
+            label = "Drag & Drop the music here";
+            color = WHITE;
+        }
+        int width = MeasureText(label, height);
+        DrawText(label, screenWidth/2 - width/2, screenHeight/2 - height/2, height, color);
+    }
     EndDrawing();
 }
 
-void m_plug_shutdown(void* s) {
-    Plug* state = (Plug*)s;
+void m_plug_shutdown() {
+    
 };

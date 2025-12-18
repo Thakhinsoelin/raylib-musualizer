@@ -1,6 +1,6 @@
 #pragma once
 int call(void);
 
-int init(const char* song_name);
+int init();
 int update();
 void reloadDLL();
