@@ -2,13 +2,15 @@
 //#include "plug.h"
 #include <assert.h>
 #include <complex>
+#include <cstdlib>
 #include <string.h>
+#include <math.h>
 #include "raylib.h"
 typedef struct {
     float left;
     float right;
 } Frame;
-#define N (1 << 13)
+#define N (1 << 10)
 float in[N] = { 0 };
 std::complex<float> out[N] = { 0 };
 float max_amp = 0;
@@ -39,11 +41,12 @@ void fft(float in[], size_t stride, std::complex<float> out[], size_t n) {
 }
 
 float amp(std::complex<float> z) {
-    float a = fabsf(std::real<float>(z));
-    float b = fabsf(std::imag<float>(z));
-    if (a < b)
-        return b;
-    return a;
+    // float a = fabsf(std::real<float>(z));
+    // float b = fabsf(std::imag<float>(z));
+    // if (a < b)
+    //     return b;
+    // return a;
+    return abs(z );
 }
 
 void callback(void* bufferData, unsigned int frames) {
@@ -156,9 +159,10 @@ void m_plug_update() {
                 max_amp = a;
             }
         }
-        float step = 1.06;
+        float step = 1.06f;
         size_t m =0;
-        for (float f = 20.0f; (size_t)f < N; f *= step) {
+        float lowf = 1.f;
+        for (float f = lowf; (size_t)f < N/2; f = ceil(f *step)) {
             m += 1;
         }
 
@@ -166,13 +170,16 @@ void m_plug_update() {
         // printf("m is %d\n", m);
         float cell_width = (float)screenWidth / m;
         m = 0;
-        for (float f = 20.0f; (size_t)f < N; f *= step) {
-            float f1 = f * step;
+        for (float f = lowf; (size_t)f < N/2; f = ceil(f *step)) {
+            float f1 = ceil(f *step);
             float a = 0.f;
-            for(size_t q = (size_t)f; q < N && q < (size_t) f1; ++q) {
-                a += amp(out[q]);
+            for(size_t q = (size_t)f; q < N/2 && q < (size_t) f1; ++q) {
+                float b = amp(out[q]);
+                if (b > a) {
+                    a = b;
+                }
             }
-            a /= (size_t)f1 - (size_t)f + 1;
+            // a /= (size_t)f1 - (size_t)f + 1;
             // printf("%f, %f", in[i], out[i]);
             float t = a / max_amp;
             DrawRectangle(m * cell_width, screenHeight / 2 - screenHeight / 2 * t,
