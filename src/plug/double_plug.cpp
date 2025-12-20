@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <complex>
 #include <cstdlib>
+#include <cstring>
 #include <string.h>
 #include <math.h>
 #include "raylib.h"
@@ -10,8 +11,9 @@ typedef struct {
     float left;
     float right;
 } Frame;
-#define N (1 << 10)
-float in[N] = { 0 };
+#define N (1 << 13)
+float in1[N] = { 0 };
+float in2[N] = { 0 };
 std::complex<float> out[N] = { 0 };
 float max_amp = 0;
 
@@ -46,17 +48,19 @@ float amp(std::complex<float> z) {
     // if (a < b)
     //     return b;
     // return a;
-    return abs(z );
+    float a = std::real(z);
+    float b = std::imag(z);
+    return log(a*a + b*b);
 }
 
 void callback(void* bufferData, unsigned int frames) {
     
 
-    float (*fframes)[state->music.stream.channels] = (float(*)[state->music.stream.channels])bufferData;
+    float (*fframes)[2] = (float(*)[2])bufferData;
 
     for (size_t i = 0; i < frames; i++) {
-        memmove(in, in+1, (N - 1)*sizeof(in[0]));
-        in[N-1] = fframes[i][0];
+        memmove(in1, in1+1, (N - 1)*sizeof(in1[0]));
+        in1[N-1] = fframes[i][0];
         //printf("data: %0.7f", fframes[i].right);
     }
     
@@ -82,7 +86,11 @@ void* m_pre_reload() {
 void m_plug_init() {
     state = new Plug;
     memset(state, 0, sizeof(Plug));
-	// state->music = LoadMusicStream(file_path);
+	state->music = LoadMusicStream("miku_marshmellow.mp3");
+	PlayMusicStream(state->music);
+	SetMusicVolume(state->music, 0.25f);
+
+    AttachAudioStreamProcessor(state->music.stream, callback);
     
 
 
@@ -93,10 +101,6 @@ void m_plug_init() {
 	// printf("state->music stream sample size = %u\n", state->music.stream.sampleSize);
 	// printf("state->music stream sample channels = %u\n", state->music.stream.channels);
 	
-	// PlayMusicStream(state->music);
-	// SetMusicVolume(state->music, 0.25f);
-
-    // AttachAudioStreamProcessor(state->music.stream, callback);
 };
 
 
@@ -151,7 +155,15 @@ void m_plug_update() {
     BeginDrawing();
     ClearBackground(GetColor(0x151515FF));
     if (IsMusicValid(state->music)) {
-        fft(in, 1, out, N);
+        // float snapshot[N];
+        // memcpy(snapshot, in1, sizeof(float)*N);
+        for(int i = 0; i < N; ++i) {
+            float t = (float)i/N;
+            float hann = 0.5 - 0.5 * cosf(2*PI*t);
+            in2[i] = in1[i]*hann;
+        }
+        
+        fft(in2, 1, out, N);
         float max_amp = 0.f;
         for (size_t i = 0; i < N; i++) {
             float a = amp(out[i]);
